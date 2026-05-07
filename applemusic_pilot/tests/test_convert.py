@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pytest
-from applemusic_pilot.downloader.convert import convert_to_wav, ConvertError
+from applemusic_pilot.downloader.convert import convert_to_wav, ConvertError, FFMPEG_BIN
 
 
 def test_convert_missing_file(tmp_path):
@@ -15,7 +15,7 @@ def test_convert_missing_file(tmp_path):
 def test_convert_success(tmp_path):
     src = tmp_path / "silence.m4a"
     subprocess.run(
-        ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+        [str(FFMPEG_BIN), "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
          "-t", "1", "-c:a", "aac", str(src)],
         check=True, capture_output=True,
     )
