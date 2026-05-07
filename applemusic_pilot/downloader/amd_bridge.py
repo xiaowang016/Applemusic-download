@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-AMD_DIR = Path(__file__).resolve().parents[3] / "AppleMusicDecrypt"
+AMD_DIR = Path(__file__).resolve().parents[1] / "AppleMusicDecrypt-2"
 
 
 def _ensure_amd_on_path() -> None:
