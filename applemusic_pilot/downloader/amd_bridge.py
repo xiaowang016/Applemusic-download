@@ -52,14 +52,16 @@ class AMDBridge:
 
         from creart import it, add_creator
         from src.logger import LoggerCreator
-        from src.config import ConfigCreator
+        from src.config import ConfigCreator, Config
+        add_creator(LoggerCreator)
+        add_creator(ConfigCreator)
+        _ = it(Config)  # 必须在 grpc/api import 前完成注册
+
         from src.api import APICreator, WebAPI
         from src.grpc.manager import WMCreator, WrapperManager
         from src.measurer import MeasurerCreator
         from src.rip import Ripper
 
-        add_creator(LoggerCreator)
-        add_creator(ConfigCreator)
         add_creator(APICreator)
         add_creator(WMCreator)
         add_creator(MeasurerCreator)
