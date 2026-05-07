@@ -1,0 +1,2 @@
+"""Apple Music metadata resolver."""
+

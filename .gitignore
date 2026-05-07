@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.idea/
+*.log
+db_monitor.log
+*.zip
+test_output/
+output/
+AppleMusicDecrypt/
+.playwright_profile/
+cookie_farm/profiles/
