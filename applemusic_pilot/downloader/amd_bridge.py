@@ -74,21 +74,47 @@ class AMDBridge:
         self._ripper: Optional[Ripper] = None
 
     def start(self) -> None:
-        from src.utils import run_sync
         from src.config import Config
+        from src.utils import safely_create_task
 
-        self._loop.run_until_complete(run_sync(self._it(self._WebAPI).init))
         cfg = self._it(Config)
+        self._it(self._WebAPI).init()
         self._loop.run_until_complete(
             self._it(self._WrapperManager).init(cfg.instance.url, cfg.instance.secure)
         )
         self._ripper = self._Ripper()
-        self._loop.run_until_complete(
+        # decrypt_init 是无限流，必须作为后台 task 启动，不能 await
+        self._loop.run_until_complete(self._start_decrypt_stream())
+
+    async def _start_decrypt_stream(self) -> None:
+        """启动解密流后台 task，等待 KEEPALIVE 确认连接建立。"""
+        import asyncio
+        ready = asyncio.Event()
+
+        orig_success = self._ripper.on_decrypt_success
+        orig_failure = self._ripper.on_decrypt_failed
+
+        async def on_success_wrap(adam_id, key, sample, idx):
+            ready.set()
+            await orig_success(adam_id, key, sample, idx)
+
+        async def on_failure_wrap(adam_id, key, sample, idx):
+            ready.set()
+            await orig_failure(adam_id, key, sample, idx)
+
+        # 在后台启动无限流
+        asyncio.ensure_future(
             self._it(self._WrapperManager).decrypt_init(
-                on_success=self._ripper.on_decrypt_success,
-                on_failure=self._ripper.on_decrypt_failed,
-            )
+                on_success=on_success_wrap,
+                on_failure=on_failure_wrap,
+            ),
+            loop=self._loop,
         )
+        # 等第一个 keepalive/回调到来，确认流已建立（最多 15 秒）
+        try:
+            await asyncio.wait_for(ready.wait(), timeout=15)
+        except asyncio.TimeoutError:
+            pass  # keepalive 还没触发也没关系，流已经在跑了
 
     def download_song(self, url: str, tmp_dir: Path) -> tuple[Path, dict]:
         """下载单首歌到 tmp_dir，返回 (m4a_path, meta_dict)。失败时抛出异常。"""
